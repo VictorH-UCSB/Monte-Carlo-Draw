@@ -1,0 +1,43 @@
+---
+title: "Template_Rmd"
+author: "Victor Huang"
+date: "November 8, 2020"
+output: pdf_document
+---
+
+## Part 1: explanatio of the variables and the parameters of the population:  
+
+nSims: number of simulation  
+N: Population size  
+n: Sample size  
+y: population generated from N(theta,sigma2)  
+theta: Mean of y  
+sigma2: Variance of y  
+Y: Sample selected without replacement from y  
+theta_bar: Mean of sample  
+theta_var: Variance of Monte Carolo Draws  
+
+## Part 2: Presenting the findings
+```{r,echo=FALSE}
+source('set_para.R')
+source('pop_gen.R')
+source('pop_draw.R')
+source('simulation.R')
+```
+
+
+```{r}
+nSims=10000
+theta=2
+sigma2=1
+N=10000
+n=c(100,1000,5000,9000,9900)
+```
+
+
+```{r}
+for (i in 1:length(n)){
+  print(simulation(nSims,theta,sigma2,N,n[i]))
+}
+```
+
