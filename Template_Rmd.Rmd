@@ -5,17 +5,17 @@ date: "November 8, 2020"
 output: pdf_document
 ---
 
-## Part 1: explanatio of the variables and the parameters of the population:  
+## Part 1: explanation of the variables and the parameters of the population:  
 
-nSims: number of simulation  
+nSims: Number of simulations  
 N: Population size  
 n: Sample size  
-y: population generated from N(theta,sigma2)  
+y: Population generated from N(theta,sigma2)  
 theta: Mean of y  
 sigma2: Variance of y  
 Y: Sample selected without replacement from y  
-theta_bar: Mean of sample  
-theta_var: Variance of Monte Carolo Draws  
+theta_bar: Mean of the sample  
+theta_var: Variance of Monte Carlo Draws  
 
 ## Part 2: Presenting the findings
 ```{r,echo=FALSE}
@@ -37,7 +37,9 @@ n=c(100,1000,5000,9000,9900)
 
 ```{r}
 for (i in 1:length(n)){
+  cat(paste0('n=',n[i],'\n'))
   print(simulation(nSims,theta,sigma2,N,n[i]))
+  cat('\n\n\n')
 }
 ```
 

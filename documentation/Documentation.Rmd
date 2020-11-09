@@ -1,0 +1,42 @@
+---
+title: "Documentation"
+author: "Victor Huang"
+date: "November 8, 2020"
+output: pdf_document
+---
+
+## Overview: 
+  
+The purpose of the R program is to use R function to perform Monte-Carlo draw on randomly generated population.  
+The following input parameters are defined as:  
+`nSims: number of simulation`  
+`N: Population size`  
+`n: Sample size`  
+`y: population generated from N(theta,sigma2)`  
+`theta: Mean of y`  
+`sigma2: Variance of y`  
+`Y: Sample selected without replacement from y`  
+`theta_bar: Mean of sample`  
+`theta_var: Variance of Monte Carolo Draws`  
+  
+## set_para.R
+  
+**set_para.R** defines the function: `set_para`. It takes `theta` and `sigma2` as inputs and outputs a vector representing the parameters of the population. `theta` will be treated as the popluation mean and `sigma2` will be treated as the population variance.  
+  
+## pop_gen.R
+  
+**pop_gen.R** defines the function: `pop_gen`. It takes a vector generated in **set_para.R** and `N`, a numeric input representing the popultion size. The function outputs a vector of length `N` with each element following iid Normal distribution, specified by the input parameter.  
+  
+## pop_draw.R
+  
+**pop_draw.R** defines the function `pop_draw`. It takes a vector of numbers generated in **pop_gen.R** as the population, and a number `n` as the sample size. It will draw `n` elements from the population with replacement and output these draws as a new vector, representing the random samples.  
+  
+## simulation.R
+  
+**simulation.R** defines the function `simulation`. It takes `nSims`, `N`, `n`, `theta`, and `sigma2` as inputs. The function first calls `set_para` to generate a parameter vector based on `theta` and `sigma2`. Then it calss `pop_gen` to generate a population vector of size `N`, with each element following `N(theta,sigma2)`. Using `pop_draw`, it will generate `nSims` samples of size `n` from the population, and record each sample's mean. The function's output will be a 2 by 2 dataframe showing the observed sample mean, variance of the observed sample mean, the theoretical sample mean and the theoretical variance of the sample mean.  
+  
+The following is an example output:  
+```{r, echo=FALSE}
+source(paste0(here::here(),"/simulation.R", ''))
+simulation(10,0,1,20,10)
+```
