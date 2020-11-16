@@ -25,7 +25,7 @@ The following input parameters are defined as:
   
 ## pop_gen.R
   
-**pop_gen.R** defines the function: `pop_gen`. It takes a vector generated in **set_para.R** and `N`, a numeric input representing the popultion size. The function outputs a vector of length `N` with each element following iid Normal distribution, specified by the input parameter.  
+**pop_gen.R** defines the function: `pop_gen`. It takes a vector generated in **set_para.R** and `N`, a numeric input representing the popultion size. The function outputs a vector of length `N` with each element following iid Normal distribution, specified by the input parameter. It also requires a `type` variable which will specify which distribution to draw population from.
   
 ## pop_draw.R
   
@@ -38,5 +38,5 @@ The following input parameters are defined as:
 The following is an example output:  
 ```{r, echo=FALSE}
 source(paste0(here::here(),"/simulation.R", ''))
-simulation(10,0,1,20,10)
+simulation(10,0,1,20,10,'normal')
 ```

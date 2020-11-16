@@ -32,13 +32,16 @@ theta=2
 sigma2=1
 N=10000
 n=c(100,1000,5000,9000,9900)
+type='normal'
 ```
 
 
 ```{r}
+library(kableExtra)
 for (i in 1:length(n)){
   cat(paste0('n=',n[i],'\n'))
-  print(simulation(nSims,theta,sigma2,N,n[i]))
+  kable(simulation())
+  print(simulation(nSims,theta,sigma2,N,n[i],type))
   cat('\n\n\n')
 }
 ```
