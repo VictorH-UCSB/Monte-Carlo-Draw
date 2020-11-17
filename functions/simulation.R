@@ -1,7 +1,7 @@
 simulation<- function(nSims,theta,sigma2,N,n,type){
-  source(paste0(here::here(),"/set_para.R", ''))
-  source(paste0(here::here(),"/pop_gen.R", ''))
-  source(paste0(here::here(),"/pop_draw.R", ''))
+  source(paste0(here::here(),"/functions/set_para.R", ''))
+  source(paste0(here::here(),"/functions/pop_gen.R", ''))
+  source(paste0(here::here(),"/functions/pop_draw.R", ''))
 
   parameter<- set_para(theta,sigma2)
   y<-pop_gen(parameter,N,type)

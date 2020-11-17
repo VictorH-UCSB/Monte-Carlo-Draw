@@ -1,0 +1,19 @@
+---
+title: "kable example"
+author: "Dick Startz"
+date: "11/16/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This is just a quick illustration of using kable.
+Both kable() and kableExtra have lots of other arguments/functions for further refinement
+```{r}
+library(tidyverse)
+library(kableExtra)
+sillyTibble <- tibble(a = runif(20), b=rnorm(20))
+sillyTibble %>% kable(digits = 5)
+```

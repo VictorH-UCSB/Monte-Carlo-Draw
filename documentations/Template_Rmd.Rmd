@@ -1,0 +1,61 @@
+---
+title: "Template_Rmd"
+author: "Victor Huang"
+date: "November 8, 2020"
+output: 
+  pdf_document:
+    latex_engine: pdflatex
+---
+
+## Part 1: explanation of the variables and the parameters of the population:  
+
+nSims: Number of simulations  
+N: Population size  
+n: Sample size  
+y: Population generated from N(theta,sigma2)  
+theta: Mean of y  
+sigma2: Variance of y  
+Y: Sample selected without replacement from y  
+theta_bar: Mean of the sample  
+theta_var: Variance of Monte Carlo Draws  
+
+## Part 2: Presenting the findings
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```     
+
+```{r,echo=FALSE}
+source(paste0(here::here(),"/functions/set_para.R", ''))
+source(paste0(here::here(),"/functions/pop_gen.R", ''))
+source(paste0(here::here(),"/functions/pop_draw.R", ''))
+source(paste0(here::here(),"/functions/simulation.R", ''))
+library(kableExtra)
+```
+
+
+```{r}
+nSims=10000
+theta=2
+sigma2=1
+N=10000
+n=c(100,1000,5000,9000,9900)
+type='normal'
+```
+
+```{r, results='asis',include=TRUE}
+kable_styling(kable(simulation(nSims,theta,sigma2,N,n[1],type)[[3]],format="latex",align='c'),latex_options = c("striped"),full_width = T)
+cat('\n')
+```
+
+```{r,  restults='asis',include=TRUE}
+for (i in c(1:length(n))){
+  print(kable(
+    simulation(nSims,theta,sigma2,N,n[i],type),
+  caption = 'Sample Output',
+  booktabs = TRUE, valign = 't'
+))
+  cat('\n')
+}
+```
+

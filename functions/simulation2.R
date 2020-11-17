@@ -1,7 +1,7 @@
 simulation2<- function(y,x,p,sigma_epi2,nSims){
-  source(paste0(here::here(),"/set_para.R", ''))
-  source(paste0(here::here(),"/pop_gen.R", ''))
-  source(paste0(here::here(),"/pop_draw.R", ''))
+  source(paste0(here::here(),"/functions/set_para.R", ''))
+  source(paste0(here::here(),"/functions/pop_gen.R", ''))
+  source(paste0(here::here(),"/functions/pop_draw.R", ''))
   
   
   out<-rep(NA,nSims)
@@ -19,8 +19,7 @@ simulation2<- function(y,x,p,sigma_epi2,nSims){
     y_select<-y*sample
     capy_select<-cap_y*sample
     
-    beta_hat<-length(x_select)*cov(capy_select,x_select)/
-      (var(x_select)*(length(x_select)-1))
+    beta_hat<-lm(formula=capy_select~x_select+0)[[1]] %>% as.numeric()
     out[i]<-beta_hat
   }
   return(out)
