@@ -7,10 +7,10 @@ output:
     latex_engine: pdflatex
 ---
 
-## My work so far.
-  This is still very crude and I will work it further.
 
-```{r setup, warning=FALSE,message=FALSE}
+    
+
+```{r setup, echo=FALSE,warning=FALSE,message=FALSE}
 
 source(paste0(here::here(),"/functions/set_para.R", ''))
 source(paste0(here::here(),"/functions/pop_gen.R", ''))
@@ -20,62 +20,120 @@ library(tidyverse)
 library(kableExtra)
 ```
 
-
-```{r, results='asis',warning=FALSE,message=FALSE}
+## Overview:
+  Concerned variables and underlying Monte-Carlo model:  
+    
+    nSims: Number of simulations to run for each groups of parameter.  
+    N: Size of population.  
+    p: Probablity an observation is sampled.  
+    sigma_e2: Variance of Model error e.  
+    sigma_epi2: variance of unpredicted error epislon.  
+    yi: Dependent variable without unpredicted error.  
+    xi: Independent variable.  
+    cap_y: Dependent variable with unpredicted error.
+      
+    Simulation2: A function that randomly draws samples from population given. Each observation \\
+    has probability p of being samapled. It repeats this operation nSims times and will output a \\
+    vector of beta, the empirical value for an OLS fitting model based on cap_y and xi.  
+      
+```{r, echo=FALSE}
 start.time<-Sys.time()
-
+```
+        
+          
+```{r, results='asis',warning=FALSE,message=FALSE}
+# setting parameters
 sigma_e2<-1
 N<-10000
 beta<-2
-
-
-x_para<-set_para(0,1)
-e_para<-set_para(0,sigma_e2)
-
-xi<-pop_gen(x_para,N,'uniform')
-ei<-pop_gen(e_para,N,'normal')
-
-yi<-xi*beta+ei
-
 nSims<-10000
 
 p<-c(0.01,0.1,0.5,0.9,0.99)
 sigma_epi2<-c(0,1,2)
 
+x_para<-set_para(0,1)
+e_para<-set_para(0,sigma_e2)
+
+# generating population
+xi<-pop_gen(x_para,N,'uniform')
+ei<-pop_gen(e_para,N,'normal')
+
+yi<-xi*beta+ei
+
+
+
 result<-NULL
 
-for (i in c(1:length(p))){
-  for (j in c(1:length(sigma_epi2))){
+# for each group of simulations, generate one population with 
+# independent error epislon.
+
+for (j in c(1:length(sigma_epi2))){
+    epi_para<- set_para(0,sigma_epi2[j])
+    epi<-pop_gen(epi_para,N,'normal')
+    
+    cap_y<-yi+epi
+    
+# sample from the population with probability p and return the 
+# variance of the beta.
+  for (i in c(1:length(p))){
     start.time.small<-Sys.time()
-    var_beta<-var(simulation2(yi,xi,p[i],sigma_epi2[j],nSims))
-    theo_var<-sigma_epi2[j]**2/(sum(xi**2))+(1-p[i])/p[i]*(sum(xi**2*ei**2))/((sum(xi**2))**2)
+    var_beta<-var(simulation2(cap_y,xi,p[i],nSims))
+    theo_var<-sigma_epi2[j]/(sum(xi**2))+((1-p[i])/p[i])*
+      (sum(xi**2*ei**2))/((sum(xi**2))**2)
     
     end.time.small<-Sys.time()
-    out<-cbind(obs=var_beta,theo=theo_var,prob=sprintf('p = %i ',i),sigma=sprintf('sigma_epi2 = %i',j),time=end.time.small-start.time.small)
+    
+# rearranging the data for presentation and making graph
+    out<-cbind(obs=var_beta,theo=theo_var,prob=sprintf('p = %f ',p[i]),
+               sigma=sprintf('sigma_epi2 = %f',sigma_epi2[j]),
+               time=end.time.small-start.time.small)
     result<-rbind(result,out)
   }
 }
 
+```
+
+```{r Plot,include=TRUE}
 result1<-as.data.frame(result) %>% gather(type,num,obs:theo) %>% type_convert()
 
 for (i in (c(1:length(p)))){
-a<-ggplot(result1 %>% filter(prob==sprintf('p = %i',i)))+
+a<-ggplot(result1 %>% filter(prob==sprintf('p = %f',p[i])))+
     geom_col(aes(sigma,num,fill=type),position='dodge',width = 0.9)+
-  geom_text(aes(sigma,num,label=round(as.numeric(num),5),fill=type),
+  geom_text(aes(sigma,num,label=round(as.numeric(num),5),group=type),
             position = position_dodge(width = 0.9))+
   theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
-        plot.margin = unit(c(1,1,1,1), "cm"))+ggtitle(sprintf('Observation with p= %i',i))
+        plot.margin = unit(c(1,1,1,1), "cm"))+
+  ggtitle(sprintf('Observation with p= %f',p[i]))
 plot(a)
 }
-end.time<-Sys.time()
-
 
 ```
 
+```{r Plot2}
+for (i in (c(1:length(sigma_epi2)))){
+a<-ggplot(result1 %>% filter(sigma==sprintf('sigma_epi2 = %f',sigma_epi2[i])))+
+    geom_col(aes(prob,num,fill=type),position='dodge',width = 0.9)+
+  geom_text(aes(prob,num,label=round(as.numeric(num),5),group=type),
+            position = position_dodge(width = 0.9))+
+  theme(axis.title.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        plot.margin = unit(c(1,1,1,1), "cm"))+
+  ggtitle(sprintf('Observation with sigma= %f',sigma_epi2[i]))
+plot(a)
+}
+
+```
+
+```{r, echo=FALSE}
+end.time<-Sys.time()
+```
+
 ```{r,echo=FALSE,results="asis"}
-kable(rbind(as.data.frame(result) %>% select(prob,sigma,time),c('time in total','time in total',end.time-start.time)))
+kable(as.data.frame(result) %>% select(prob,sigma,obs,theo))
+
+kable(rbind(as.data.frame(result) %>% select(prob,sigma,time),
+c('time in total','time in total',end.time-start.time)))
 ```
 
 
