@@ -10,7 +10,7 @@ library(tidyverse)
 sigma_e2<-1
 N<-10000
 beta<-2
-nSims<-1000
+nSims<-10000
 
 p<-c(0.01,0.1,0.5,0.9,0.99)
 sigma_epi2<-c(0,1,2)
@@ -43,7 +43,7 @@ for (j in c(1:length(sigma_epi2))){
     start.time.small<-Sys.time()
     var_beta<-var(simulation2(cap_y,xi,p[i],nSims))
     theo_var<-sigma_epi2[j]**2/(sum(xi**2))+((1-p[i])/p[i])*
-      (sum(xi**2*ei**2))/((sum(xi**2))**2)
+      ((sum(xi**2*ei**2))/((sum(xi**2))**2)+sigma_epi2[j]**2/(sum(xi**2)))
     
     end.time.small<-Sys.time()
     
