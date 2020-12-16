@@ -19,12 +19,16 @@ More details regrading what does each datafile do is to be added.
 For now the data sets that are used are:  
   HD2019: The data of all Universities in the 2019 IPEDS universe.  
   IC2019: Institution Characteristics for all universities.  
+  C2019_a: A complete list of ratio compositions of universities registered in the IPEDS universe.  
+  f1718_f1a - f1718_f3: Disclosed financial situations of higher institues in the United States. The distinctions are drawn based on accounting principles and purpose of operation (for-profit or public).  
+  
   
   
 ```{r}
 c2019_a<-read_dta("./C2019_A/dct_C2019_A.dta")
 f1718_f1a<-read_dta("./F1718_F1A/dct_F1718_F1A.dta")
 f1718_f2<-read_dta("./F1718_F2/dct_F1718_F2.dta")
+f1718_f3<-read_dta("./F1718_F3/dct_F1718_F3.dta")
 gr2019<-read_dta("./GR2019/dct_efia2019.dta")
 gr2019_p<-read_dta("./GR2019_PELL_SSL/dct_efia2019.dta")
 hd2019<- read_dta("./HD2019/dct_hd2019.dta")
@@ -40,8 +44,11 @@ Additionally, for the purpose of linear model, I transformed the data in `hbcu` 
   
     
 ```{r}
-joined_1<-inner_join(hd2019,ic2019)
+joined_1<-left_join(ic2019,hd2019)
 ggplot(joined_1 %>% mutate(is_app=(ifelse(stusrv1 %in% c(1,0),1,0)))) + geom_bar(aes(is_app))
+hd2019_1 <- hd2019 %>% select(unitid,iclevel,hbcu)
+ic2019_1 <- ic2019 %>% select(unitid,stusrv1)
+joined_1<-inner_join(hd2019_1,ic2019_1)
 joined_1<-joined_1 %>% filter(iclevel==1) %>% filter(stusrv1 %in% c(0,1))
 joined_1$hbcu<--(joined_1$hbcu-2)
 ```
@@ -69,3 +76,89 @@ ggplot(joined_1 %>% mutate(test=hbcu*2+stusrv1)) + geom_bar(aes(test,fill=as.fac
   geom_text(data=joined_1 %>% mutate(test=hbcu*2+stusrv1) %>% group_by(test) %>% summarise(n=n()),aes(label=n,y=n,x=test),vjust=-0.75)
 
 ```
+
+
+## Remarks:
+  
+What are some other issues that should be considered?  
+1: hedoskadesticity: don't know how to solve yet  
+2: quasi_experiment bias, `HBCUs` don't just turn into `non-HBCUs`, can be solved, potentially, by using difference in difference methods, although it would require extra data and previous inputs to justify this. (To be done).  
+3: endogeneity: what if HBCU has correlations with the error term? Find an instrument. (2SLS)  
+4: multi-variable test, what are some other factors that could help us explain this?  
+
+
+## Updated model - Data cleaning and analysis
+  
+`Afri_ratio`: a double numeric variable showing the percentage of African students in the respective institutes. However this estimator, by itslef, is skewed and due to its continuous nature makes the estimator difficult to interpret. For ease of computing, I used a categorical variable `high_afri` as a proxy.  
+`high_afri`: A categorical variable that will be assigned to 1 if and only if the african student percentage in the particular school is above national average. Note: due to the skewedness and clustering of the data, schools that have above-average african students constitutes close to a quarter of the total schools.  
+`ph_gr` and `high_gr`: The former, like `Afri_ratio` is the numeric variable equal to the phell grant each school receives in millions. As in the case of `Afri_ratio` this variable is highly skewed and showed very extreme outliers. Thus, I chose an empirical value of 10 (ten million dollars) as the cut_off to generate the categorical variable `high_gr`. 
+
+```{r}
+c2019_a_1 <- c2019_a %>% group_by(unitid) %>% filter(cipcode==99) %>% summarise_if(is.numeric,sum,na.rm=T) %>%
+  mutate('Afri_ratio'=cbkaat/ctotalt) %>% select(unitid,cbkaat,ctotalt,Afri_ratio)
+f1718_f1a_1 <- f1718_f1a%>% select(unitid,'ph_gr'=f1e01)
+f1718_f2_1 <- f1718_f2 %>% select(unitid,'ph_gr'=f2c01)
+f1718_f3_1 <- f1718_f3 %>% select(unitid,'ph_gr'=f3c01)
+f1718_pg<- rbind(f1718_f1a_1,f1718_f2_1,f1718_f3_1)
+f1718_pg[is.na(f1718_pg)]<-0
+joined_2<-right_join(f1718_pg,c2019_a_1) %>% right_join(joined_1)
+joined_2$ph_gr<- joined_2$ph_gr/1000000
+joined_2<-joined_2 %>% mutate(high_afri=ifelse(Afri_ratio>=0.13424,1,0))
+joined_2<-joined_2 %>% mutate(high_gr=ifelse(ph_gr>=10,1,0))
+```
+
+
+
+```{r}
+summary(joined_2$Afri_ratio)
+summary(joined_2$ph_gr)
+ggplot(f1718_pg) + geom_boxplot(aes(ph_gr))
+```
+
+## Justification
+Both variable showed high skewedness and their mean being inflated by very large outliers, such as schools consists of 100 percent african-american students and schools that received 248 million phell grants. In terms of racial composition, I was interested in seeing if african student concentration above the majory (3rd) quarter of the data. Thus, I chose to mark the cutoff at the mean of the data.  
+On the other hand, for phell grant, I was interested in seeing how schools with abnormal funds, (i.e. high concentration of students who required federal aid, thus highly possible that could explain remedial service availability). In that case, I was interested in setting the cutoff at `normal` range, in this case, I chose an arbitrary number, 10 million as the cut-off, instead of the mean.  
+  
+## Updated model: Incorporating phell grant and ratio composition
+  
+  Given the t value, it is largely possible that the `HBCU` status, in itself doe not contribute much to the availability of remedial services in schools. Rather, it is the racial composition and phell grant expenses that offered much of the variablity in the model.  
+
+```{r}
+model_2<-lm(stusrv1~hbcu+ph_gr+Afri_ratio,data=joined_2)
+model_3<-lm(stusrv1~hbcu+high_gr+high_afri,data=joined_2)
+summary(model_2)
+summary(model_3)
+```
+
+## Ebdigeneity and 2SLS
+
+This might provide further insights into the role of `HBCU` in the availability of remedial services.  
+Here, I am using `high_afri` as an instrument, note this choice is not necessarylity true and the subsequent model might be very biased as a result. In further research, if I were to find a better instrument I will update this part.
+
+```{r}
+# Evaluate the validity of high_afri as an instrument
+coef1<-lm(stusrv1~hbcu+high_gr,data=joined_2)[[1]]%>% as.numeric
+joined_2<-joined_2 %>% mutate(error=stusrv1-coef1[1]-coef1[2]*hbcu-coef1[3]*high_gr)
+cov1<-sum(joined_2$hbcu*joined_2$high_afri/length(joined_2$hbcu),na.rm = T)/(sd(joined_2$hbcu,na.rm = T)*sd(joined_2$high_afri,na.rm = T))
+cov2<-sum(joined_2$error*joined_2$high_afri/length(joined_2$hbcu),na.rm = T)/(sd(joined_2$error,na.rm = T)*sd(joined_2$high_afri,na.rm = T))
+print(c(cov1,cov2))
+```
+As is shown here, after accounting for phell grant, high_afri is mildly corrolated with the independent variable and relatively uncorrelated with the error term. It can be used as an instrument.
+
+
+```{r}
+coef<-lm(hbcu~high_afri+high_gr,data=joined_2)[[1]] %>% as.numeric()
+joined_2<- joined_2 %>% mutate(hbcu_bar=coef[2]*high_afri+coef[3]*high_gr+coef[1])
+model_4<-lm(stusrv1~hbcu_bar+high_gr,data = joined_2)
+summary(model_4)
+```
+  
+In the updated model, hbcu_bar is no longer categorical but is numeric as it is the predicted value from `high_afri` and `high_gr`. Consequently, the sum of all values might exceed one in the case. However, it can be seen from the model that, taken endogeneity into account (racial composition), `hbcu` status plays an important role in the availability of remedial services.
+
+
+## Notes to self and some other questions to consider:
+  
+  
+Note to self, remedial services is but a categorical value with have or not have. Try to find ways to account for quasi-experiment problems.  
+Find the expenses for remedial services for each school (Hopefully.)  
+Outliers with Phell Grant, see if I can find more about them. Also, the university that has way more phell grant than any other schools is: University of Phoenix-Arizona. Question: Why?
